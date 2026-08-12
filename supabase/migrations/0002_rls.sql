@@ -7,6 +7,27 @@ alter table public.jobs        enable row level security;
 alter table public.matches     enable row level security;
 alter table public.match_audit enable row level security;
 
+-- ── Grants ────────────────────────────────────────────────
+-- Verified against a real Postgres: Supabase's default privileges give anon,
+-- authenticated and service_role only REFERENCES, TRIGGER and TRUNCATE on new
+-- public tables — no DML at all. A policy grants nothing on its own, so without
+-- these the app gets "permission denied for table profiles" even when the
+-- policy would have allowed the row. RLS then narrows what these grants expose.
+grant select, update on public.profiles    to authenticated;
+grant select, insert, update, delete on public.jobs to authenticated;
+grant select on public.matches     to authenticated;
+grant select on public.match_audit to authenticated;
+
+-- Edge Functions write matches and audit rows with service_role.
+grant select, insert, update, delete
+  on public.profiles, public.jobs, public.matches, public.match_audit
+  to service_role;
+grant usage, select on sequence public.match_audit_id_seq to service_role;
+
+-- anon gets no DML: signed out reads nothing. TRUNCATE ignores RLS entirely and
+-- nothing should hold it but the owner.
+revoke truncate on all tables in schema public from anon, authenticated;
+
 -- ── profiles ──────────────────────────────────────────────
 -- Week 1 is deliberately own-row only, which is what the two-account isolation
 -- test proves. People search (Week 3) needs a discovery policy; that lands as
@@ -56,3 +77,15 @@ create policy matches_select_own on public.matches
 create policy match_audit_select_own on public.match_audit
   for select to authenticated
   using (auth.uid() = profile_id);
+
+-- ── Keepalive ─────────────────────────────────────────────
+-- The GitHub Actions cron needs one thing anon may call that provably reaches
+-- Postgres. Every table read is denied to anon by design, and PostgREST can
+-- serve its schema endpoint from cache, so neither proves the project is awake.
+create function public.keepalive()
+returns timestamptz
+language sql
+stable
+as $$ select now() $$;
+
+grant execute on function public.keepalive() to anon;

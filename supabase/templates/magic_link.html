@@ -1,0 +1,18 @@
+<!--
+  The app signs in with the six-digit code, so {{ .Token }} is required.
+  Supabase's stock template contains only {{ .ConfirmationURL }}, which the
+  verify screen cannot use.
+
+  Local dev picks this up via supabase/config.toml. For wasla-dev and
+  wasla-prod, paste this into
+  Authentication -> Email Templates -> Magic Link in the dashboard.
+-->
+<h2>Your sign-in code</h2>
+
+<p>Enter this code in WASLA to sign in. It expires in one hour.</p>
+
+<p style="font-family: monospace; font-size: 28px; letter-spacing: 6px;">{{ .Token }}</p>
+
+<p>Or <a href="{{ .ConfirmationURL }}">open WASLA in this browser</a> to sign in directly.</p>
+
+<p>If you did not request this, ignore this email.</p>

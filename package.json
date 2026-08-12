@@ -44,7 +44,8 @@
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "build:web": "expo export --platform web",
-    "verify": "npm run check:theme && npm run typecheck && npm run lint && npm run build:web"
+    "verify": "npm run check:theme && npm run typecheck && npm run lint && npm run build:web",
+    "db:proof": "eval \"$(npx supabase status -o env)\" && SUPABASE_URL=$API_URL ANON_KEY=$ANON_KEY SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/rls-proof.mjs"
   },
   "private": true
 }

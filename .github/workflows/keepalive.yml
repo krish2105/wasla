@@ -19,8 +19,14 @@ jobs:
           SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
-          status=$(curl -sS -o /dev/null -w '%{http_code}' \
-            "$SUPABASE_URL/rest/v1/jobs?select=id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY")
-          echo "PostgREST returned $status"
-          test "$status" = "200"
+          # public.keepalive() from 0002_rls.sql. Every table is denied to anon
+          # by design, and PostgREST can answer schema requests from cache, so
+          # an RPC is the only call that provably reaches Postgres.
+          body=$(curl -sS -X POST \
+            "$SUPABASE_URL/rest/v1/rpc/keepalive" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H 'Content-Type: application/json' \
+            -w '\n%{http_code}' -d '{}')
+          echo "$body"
+          test "$(echo "$body" | tail -1)" = "200"

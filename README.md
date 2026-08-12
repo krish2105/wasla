@@ -26,7 +26,24 @@ npm run check:theme  # fails if a colour literal escaped lib/theme.ts
 npm run build:web    # expo export --platform web
 npm run verify       # all of the above, in order
 npm run db:push      # supabase db push
+npm run db:proof     # two-account RLS isolation proof (needs supabase start)
 ```
+
+## Local database
+
+The migrations are validated against a real Postgres before they go anywhere
+near a hosted project. Requires Docker (colima is fine).
+
+```bash
+npx supabase start   # applies 0001 + 0002 automatically
+npm run db:proof     # 13 checks, all must pass
+npx supabase stop    # when you're done
+```
+
+`npm run db:proof` creates two accounts through the real GoTrue API and asserts
+that neither can read the other's `profiles`, `matches` or `match_audit` rows,
+that the signup trigger fired for both, and that a signed-out caller is refused
+with SQLSTATE 42501. Emails land in Mailpit at http://127.0.0.1:54324.
 
 ## Setup checklist — steps only you can do
 
@@ -36,21 +53,25 @@ for a working deploy.
 ### 1. Local environment
 
 - [ ] `cp .env.example .env` and fill in at least `EXPO_PUBLIC_SUPABASE_URL`
-      and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. The app throws a named error without
-      them. `.env` is gitignored.
-- [ ] `npm i -g supabase` (the CLI is not installed on this machine yet).
+      and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. The repo currently has a `.env` with
+      **placeholder values** so the build could be verified — replace them.
+      `.env` is gitignored.
+- [ ] Optional: `npm i -g supabase`. Every command here uses `npx supabase`,
+      which works without a global install.
 
 ### 2. Supabase
 
 - [ ] Create projects `wasla-dev` and `wasla-prod`. That is your entire
       environment budget — the free tier allows exactly 2.
 - [ ] Copy Project URL + anon key into `.env` (dev) and GitHub secrets (prod).
-- [ ] `supabase link --project-ref <ref>` then `npm run db:push` to apply
-      `0001_init.sql` and `0002_rls.sql`. **These have not been run yet.**
+- [ ] `npx supabase link --project-ref <ref>` then `npm run db:push` to apply
+      `0001_init.sql` and `0002_rls.sql`. Both are verified against a local
+      Postgres 17 but **have not been applied to a hosted project yet.**
 - [ ] Authentication → Providers → Email: confirm **Email OTP** is enabled.
-- [ ] Authentication → Email Templates → **Magic Link**: add `{{ .Token }}` to
-      the template body. The default template only contains a link; the app
-      signs in with the six-digit code, so without this the email is unusable.
+- [ ] Authentication → Email Templates → **Magic Link**: paste the contents of
+      `supabase/templates/magic_link.html`. Verified: the stock template
+      contains only a link and no `{{ .Token }}`, and the app signs in with the
+      six-digit code — without this change the email is unusable.
 - [ ] Authentication → URL Configuration: set **Site URL** to your Cloudflare
       Pages origin and add it to **Redirect URLs**. Only needed for the emailed
       link; the code path works without it.
@@ -81,13 +102,13 @@ for a working deploy.
 
 ## Week 1 verification
 
-1. `npm run verify` exits 0.
-2. Open the Pages URL on a phone, enter your email, receive a six-digit code,
-   sign in, land on an empty profile screen.
-3. Flip the phone between light and dark. The whole app restyles, and
+1. `npm run verify` exits 0. — **done**
+2. `npm run db:proof` passes 13/13 against a local Postgres. — **done**
+3. Open the Pages URL on a phone, enter your email, receive a six-digit code,
+   sign in, land on an empty profile screen. — needs a hosted project + deploy
+4. Flip the phone between light and dark. The whole app restyles, and
    `npm run check:theme` proves no colour literal escaped `lib/theme.ts`.
-4. Sign in as two different accounts. Neither can read the other's `profiles`,
-   `matches` or `match_audit` rows.
+   — needs a real device
 
 ## Design system
 
