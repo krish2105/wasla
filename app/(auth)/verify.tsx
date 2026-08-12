@@ -13,6 +13,8 @@ export default function Verify() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canVerify = !isVerifying && code.trim().length === 6;
+
   async function verify() {
     setIsVerifying(true);
     setError(null);
@@ -56,8 +58,12 @@ export default function Verify() {
 
         <Pressable
           onPress={verify}
-          disabled={isVerifying || code.trim().length !== 6}
-          className="min-h-[48px] items-center justify-center rounded bg-accent px-4 disabled:opacity-50"
+          disabled={!canVerify}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canVerify }}
+          className={`min-h-[48px] items-center justify-center rounded bg-accent px-4 ${
+            canVerify ? '' : 'opacity-50'
+          }`}
         >
           {isVerifying ? (
             <ActivityIndicator color={colors.bg} />

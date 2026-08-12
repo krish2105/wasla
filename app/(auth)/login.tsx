@@ -12,6 +12,8 @@ export default function Login() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canSend = !isSending && email.trim().length > 0;
+
   async function sendCode() {
     setIsSending(true);
     setError(null);
@@ -63,10 +65,17 @@ export default function Login() {
           <Text className="font-body text-base text-danger">{error}</Text>
         ) : null}
 
+        {/* Opacity is computed, not a `disabled:` variant: NativeWind maps that
+            to CSS :disabled, which never matches the div react-native-web
+            renders for Pressable, so the button looked enabled on web. */}
         <Pressable
           onPress={sendCode}
-          disabled={isSending || email.trim().length === 0}
-          className="min-h-[48px] items-center justify-center rounded bg-accent px-4 disabled:opacity-50"
+          disabled={!canSend}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSend }}
+          className={`min-h-[48px] items-center justify-center rounded bg-accent px-4 ${
+            canSend ? '' : 'opacity-50'
+          }`}
         >
           {isSending ? (
             <ActivityIndicator color={colors.bg} />

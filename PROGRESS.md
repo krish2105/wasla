@@ -10,9 +10,10 @@ Shipped: Expo 57 scaffold (Router, TS strict, iOS/Android/Web), 12-token dual
          auth with OTP verify + protected route group, 0001/0002 migrations
          applied and proven on local Postgres 17, keepalive + web-deploy
          workflows. `npm run verify` green, `npm run db:proof` 13/13.
-Broken:  Nothing known. Untested: nothing has been applied to wasla-dev or
-         deployed, and the app UI has not run on a real device — only the
-         HTTP layer beneath it has been exercised.
+         Whole sign-in flow driven end to end in a browser against local
+         Supabase, both themes.
+Broken:  Nothing known. Untested: nothing applied to wasla-dev or deployed,
+         and it has not run on a real device or in a native build — only web.
 Next:    Apply to wasla-dev, deploy to Pages, run it on a phone in both themes,
          then Session 2 — AI gateway Worker (Opus 5).
 
@@ -56,3 +57,8 @@ The docs were written from memory and named stale versions. Resolved live:
   and is the exact content to paste into the dashboard.
 - **Keepalive can't read a table.** Every table is denied to anon by design, so
   the cron calls a `public.keepalive()` RPC, the one thing anon may execute.
+- **`disabled:opacity-50` silently does nothing on web.** NativeWind maps the
+  `disabled:` variant to CSS `:disabled`, which only matches form elements —
+  react-native-web renders Pressable as a div with `aria-disabled`. The button
+  was functionally disabled but looked fully enabled. Opacity is now computed
+  from the same boolean. Assume no `disabled:` variant works on Pressable.

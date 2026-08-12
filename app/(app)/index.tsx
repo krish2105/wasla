@@ -91,6 +91,7 @@ export default function Profile() {
 
         <Pressable
           onPress={signOut}
+          accessibilityRole="button"
           className="min-h-[48px] items-center justify-center rounded border border-border px-4"
         >
           <Text className="font-body text-base text-danger">Sign out</Text>

@@ -52,10 +52,10 @@ for a working deploy.
 
 ### 1. Local environment
 
-- [ ] `cp .env.example .env` and fill in at least `EXPO_PUBLIC_SUPABASE_URL`
-      and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. The repo currently has a `.env` with
-      **placeholder values** so the build could be verified — replace them.
-      `.env` is gitignored.
+- [ ] `.env` currently points at **local Supabase** (`npx supabase start`), which
+      is what the walkthrough below was run against. Swap in the `wasla-dev`
+      URL and anon key to develop against the hosted project. `.env` is
+      gitignored; `.env.example` lists every name.
 - [ ] Optional: `npm i -g supabase`. Every command here uses `npx supabase`,
       which works without a global install.
 
@@ -104,11 +104,15 @@ for a working deploy.
 
 1. `npm run verify` exits 0. — **done**
 2. `npm run db:proof` passes 13/13 against a local Postgres. — **done**
-3. Open the Pages URL on a phone, enter your email, receive a six-digit code,
-   sign in, land on an empty profile screen. — needs a hosted project + deploy
-4. Flip the phone between light and dark. The whole app restyles, and
+3. Sign-in flow, driven end to end in a browser against local Supabase:
+   email → six-digit code from the email → signed in → profile screen showing
+   the row the trigger created. Session and theme both survive a reload.
+   — **done**
+4. Theme switching restyles the whole app from one object swap, and
    `npm run check:theme` proves no colour literal escaped `lib/theme.ts`.
-   — needs a real device
+   — **done in browser**, still to confirm on a real phone
+5. Open the deployed Pages URL on a phone and repeat 3 and 4 there.
+   — needs a hosted project + deploy
 
 ## Design system
 
