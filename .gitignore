@@ -42,6 +42,9 @@ yarn-error.*
 .dev.vars.*
 !.dev.vars.example
 
+# miniflare's local state: sqlite, cached KV blobs, and dev bundles.
+.wrangler/
+
 # typescript
 *.tsbuildinfo
 
