@@ -1,4 +1,12 @@
 # PROJECT: WASLA
+
+> **Version note (2026-08-13).** This plan was written from memory and named
+> several stale versions. Corrections verified live are recorded in
+> `docs/superpowers/specs/2026-08-13-week2-design.md` and in `CLAUDE.md`, which
+> override this document wherever they disagree. The largest were: Expo 55->57,
+> `bge-m3`->`bge-base-en-v1.5` (1024 vs 768 dimensions), unversioned
+> "Gemini Flash"->`gemini-3.6-flash`, and both named Groq models shutting down
+> on 2026-08-16.
 ### An AI-native professional network for GCC expats
 **Master Build Plan — End-to-End | $0 Infrastructure | Expo (iOS + Android + Web)**
 
@@ -91,8 +99,8 @@ Each feature below maps to a *named technique* you can defend in a viva.
 
 | Feature | Technique | Free implementation |
 |---|---|---|
-| Resume → structured profile | Multimodal document extraction + constrained JSON output | Gemini Flash (PDF input native, 1M ctx) |
-| Job/people search | **Hybrid retrieval**: dense (pgvector cosine) + sparse (Postgres `tsvector`), fused by **Reciprocal Rank Fusion** | pgvector in Supabase; embeddings via Gemini or Cloudflare Workers AI `bge-m3` |
+| Resume → structured profile | Multimodal document extraction + constrained JSON output | `gemini-3.6-flash` (PDF input native, 1M ctx) |
+| Job/people search | **Hybrid retrieval**: dense (pgvector cosine) + sparse (Postgres `tsvector`), fused by **Reciprocal Rank Fusion** | pgvector in Supabase; embeddings via Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` |
 | Match score | Bi-encoder retrieve → LLM cross-encoder rerank top-20 → structured gap output | Groq (fast, cheap on tokens) |
 | Gap explanation | Constrained generation: `{have[], missing[], adjacent[], evidence[]}` — every claim must cite a profile span | Prompt-level grounding + span validation in code |
 | Ghost-job risk | Stage 1: deterministic rules. Stage 2: LLM-as-judge. Stage 3: logistic regression on labelled outcomes | scikit-learn, exported to ONNX or just a Postgres function |
@@ -106,7 +114,7 @@ Free tiers are **rate-limited, not free-unlimited**. Verified August 2026:
 
 | Provider | Free allowance | Card required | Role in your stack |
 |---|---|---|---|
-| Google AI Studio (Gemini Flash) | ~1,500 req/day, 1M context, multimodal | No | **Primary** — resume parsing, long context |
+| Google AI Studio (`gemini-3.6-flash`) | ~10 RPM is the binding limit; free-tier numbers no longer published | No | **Primary** — resume parsing, long context |
 | Groq | ~30 req/min, very high throughput | No | **Fast lane** — reranking, short calls |
 | Cerebras | High daily token allowance | No | Fallback |
 | Cloudflare Workers AI | 10,000 neurons/day | No | **Embeddings at the edge** |
@@ -126,8 +134,8 @@ BYOK is the single smartest line in this architecture. It means your inference c
 
 | Layer | Choice | Free tier reality |
 |---|---|---|
-| App framework | **Expo SDK 55 / RN 0.83 / TypeScript** | SDK is free forever; New Architecture mandatory |
-| Routing | Expo Router v7 (file-based, universal) | Free — gives you web for free from the same code |
+| App framework | **Expo SDK 57 / RN 0.86 / TypeScript** | SDK is free forever; New Architecture mandatory |
+| Routing | Expo Router 57 (versioned with the SDK; there is no "v7") | Free — gives you web for free from the same code |
 | Styling | NativeWind v4 (Tailwind for RN) | Free |
 | Animation | Reanimated 4 + Gesture Handler | Free |
 | State/data | Zustand + TanStack Query v5 | Free |
@@ -135,7 +143,7 @@ BYOK is the single smartest line in this architecture. It means your inference c
 | Vector DB | **pgvector** inside Supabase | Free — no separate vector DB, no Pinecone bill |
 | Media/CDN | **Cloudflare R2** | 10 GB storage, **zero egress fees** — this is why not Supabase Storage for images |
 | AI gateway | Cloudflare Workers | 100k requests/day |
-| Embeddings | Workers AI `bge-m3` or Gemini embeddings | 10k neurons/day |
+| Embeddings | Workers AI `@cf/baai/bge-base-en-v1.5` (768-dim) | 10k neurons/day |
 | Push | Expo Push Notifications | Free |
 | Web hosting | Cloudflare Pages | Free, unlimited bandwidth |
 | CI/CD | GitHub Actions | 2,000 min/mo private, unlimited public |
@@ -198,7 +206,7 @@ That reads better than "published on Play Store," honestly. The bias-audit dashb
 ```
 ┌────────────────────────────────────────────────────────┐
 │  Expo App (iOS · Android · Web PWA) — one codebase      │
-│  Expo Router v7 · NativeWind · Zustand · TanStack Query │
+│  Expo Router 57 · NativeWind · Zustand · TanStack Query │
 └───────────────┬────────────────────────────────────────┘
                 │ supabase-js (JWT, RLS-enforced)
                 ▼
@@ -217,7 +225,7 @@ That reads better than "published on Play Store," honestly. The bias-audit dashb
 │  ├─ Provider router: Gemini → Groq → Cerebras → OR      │
 │  ├─ Prompt-hash response cache (KV)                     │
 │  ├─ Per-user daily quota + BYOK passthrough             │
-│  └─ Workers AI: bge-m3 embeddings                       │
+│  └─ Workers AI: bge-base-en-v1.5 embeddings (768)       │
 └────────────────────────────────────────────────────────┘
                 │
                 ▼
@@ -379,14 +387,14 @@ Do not scrape LinkedIn, Bayt, or GulfTalent. ToS violation, legal exposure, and 
 ~20 hrs/week × 8 = ~170 hours. Each week has a **verify** gate; do not advance until it's green.
 
 ### Week 1 — Foundations (skeleton that deploys)
-- Expo SDK 55 + Router v7 + NativeWind + TypeScript strict mode
+- Expo SDK 57 + Router 57 + NativeWind + TypeScript strict mode
 - Supabase project ×2 (dev/prod), schema from §6.2 applied via migration files
 - Supabase Auth magic link, RLS policies on every table
 - GitHub Actions: keep-alive cron + web build → Cloudflare Pages
 - **Verify:** a stranger can open `wasla.pages.dev` on a phone, sign up, and see an empty profile. RLS blocks cross-user reads (test it with two accounts).
 
 ### Week 2 — Profile + the first AI moment
-- Cloudflare Worker `ai-gateway` with Gemini→Groq→Cerebras failover + KV cache
+- Cloudflare Worker `ai-gateway`: Gemini→Groq failover (ordered config) + encrypted KV cache
 - Resume PDF upload → R2 → Edge Function → Gemini structured extraction → profile
 - Manual edit/override UI (never trust extraction blindly)
 - Embedding generation on profile save
@@ -444,7 +452,7 @@ expat job seekers. Build it as a single Expo universal app targeting iOS,
 Android, and Web from one codebase.
 
 STACK (do not substitute without telling me why):
-- Expo SDK 55, React Native 0.83, TypeScript strict, Expo Router v7
+- Expo SDK 57, React Native 0.86, TypeScript strict, Expo Router 57
 - NativeWind v4, Reanimated 4, Zustand, TanStack Query v5
 - Supabase (Postgres 15 + pgvector + Auth + Edge Functions, Deno)
 - Cloudflare Worker as the sole AI gateway; Cloudflare R2 for files
@@ -508,7 +516,7 @@ That last row is a flex. Say it out loud in interviews.
 2. **Fairness proxies are weak.** Visa status and region are coarse proxies for the attributes that actually matter. Real fairness auditing needs consented demographic data this app does not collect.
 3. **Free-tier ceilings.** 500 MB Postgres caps at roughly 50k profiles with 768-dim embeddings. 200 concurrent realtime connections caps live features.
 4. **No iOS store distribution** at $0. PWA is a good substitute but lacks background tasks and some native APIs.
-5. **Embedding model is general-purpose.** A domain-tuned encoder on recruitment text would outperform `bge-m3` substantially.
+5. **Embedding model is general-purpose.** A domain-tuned encoder on recruitment text would outperform `bge-base-en-v1.5` substantially.
 6. **Cold start is unsolved.** A network product with no network is a demo. Be upfront about this rather than pretending otherwise.
 
 ---

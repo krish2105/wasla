@@ -2,5 +2,21 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  // `exclude` REPLACES the base's list rather than adding to it, so every entry
+  // from expo/tsconfig.base is repeated here. Dropping one would silently pull
+  // node_modules or the native folders back into the program.
+  //
+  // worker/ is the addition: it is a separate TypeScript project with its own
+  // runtime types (Ai, KVNamespace, cloudflare:workers). worker/tsconfig.json
+  // checks those files; npm run worker:typecheck runs it.
+  "exclude": [
+    "${configDir}/node_modules",
+    "${configDir}/babel.config.js",
+    "${configDir}/metro.config.js",
+    "${configDir}/jest.config.js",
+    "${configDir}/android",
+    "${configDir}/ios",
+    "${configDir}/worker"
+  ]
 }

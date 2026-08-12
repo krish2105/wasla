@@ -3,6 +3,50 @@
 Three lines per session: what shipped, what's broken, what's next.
 Updated at the end of every session, read at the start of the next one.
 
+## Session 2 — 2026-08-13 (Opus 5)
+
+Shipped: Week 2 design spec, then phase 2A — the `ai-gateway` Worker. Task API
+         + OpenAI passthrough + embeddings + health, Supabase JWT auth via
+         JWKS, atomic Postgres quota (migration 0003), AES-256-GCM encrypted
+         KV cache, Gemini→Groq failover with a daily-quota breaker. 27 worker
+         tests green; `npm run verify` now runs the worker gates too and
+         passes end to end. Node moved to 22 (.nvmrc + CI), which wrangler
+         requires. Stale facts corrected across CLAUDE.md and the build plan.
+Broken:  Nothing failing, but nothing proven against a real provider either —
+         no Gemini or Groq key is in `.dev.vars` yet, so `npm run ai:proof`
+         cannot run the inference or failover checks. Still no Cloudflare
+         account, so the Worker has never been deployed and `/ai/embed` has
+         never had a real Workers AI binding. Phases 2B, 2C, 2D not started.
+Next:    Put Gemini + Groq keys in `worker/.dev.vars`, run `npm run ai:proof`
+         against `wrangler dev`, and confirm the Gemini→Groq failover header
+         with a deliberately broken Gemini key. Then 2B (R2 upload).
+
+### Found by running it, not by reading it
+
+- **`return query` in plpgsql appends; it does not exit.** `consume_ai_quota`
+  returned `allowed=false` and then fell through and appended `allowed=true` —
+  two contradictory rows from one call. The Worker reads `rows[0]` so it would
+  have looked fine while PostgREST handed back a pair. Needs an explicit
+  `return;`.
+- **Local Supabase serves an ES256 JWKS.** The `ANON_KEY`/`SERVICE_ROLE_KEY`
+  are HS256, which is misleading — those are API keys, not user tokens. So
+  JWKS-only verification works locally, and the Worker never needs the JWT
+  secret.
+- **The root `tsc` swallowed `worker/`.** `expo/tsconfig.base` sets `exclude`,
+  and any `exclude` in the child *replaces* it rather than extending, so all
+  six base entries must be repeated alongside `worker`.
+- **Workers AI has no local emulation.** Inheriting the `ai` binding into
+  vitest makes the pool open a *remote* proxy session and demand a
+  `CLOUDFLARE_API_TOKEN`. Test bindings are declared in `vitest.config.ts`
+  directly instead of reading `wrangler.jsonc`.
+- **vitest-pool-workers storage isolates per test *file*, not per test.** A KV
+  breaker written by one case silently changed which provider the next case
+  tried. Clear KV in `beforeEach`.
+- **`@cloudflare/vitest-pool-workers` v0.13 rewrote its API.**
+  `defineWorkersConfig` → `cloudflareTest()` plugin, `SELF` →
+  `exports.default`, `env` moved to `cloudflare:workers`, and `fetchMock` was
+  deleted — mock `globalThis.fetch` instead.
+
 ## Session 1 — 2026-08-12 (Opus 5)
 
 Shipped: Expo 57 scaffold (Router, TS strict, iOS/Android/Web), 12-token dual

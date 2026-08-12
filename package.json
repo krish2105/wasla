@@ -44,7 +44,12 @@
     "db:push": "npx supabase db push",
     "db:reset": "npx supabase db reset",
     "build:web": "expo export --platform web",
-    "verify": "npm run check:theme && npm run typecheck && npm run lint && npm run build:web",
+    "worker:dev": "npm --prefix worker run dev",
+    "worker:typecheck": "npm --prefix worker run typecheck",
+    "worker:test": "npm --prefix worker run test",
+    "worker:install": "npm --prefix worker ci",
+    "ai:proof": "node scripts/gateway-proof.mjs",
+    "verify": "npm run check:theme && npm run typecheck && npm run lint && npm run worker:typecheck && npm run worker:test && npm run build:web",
     "db:proof": "eval \"$(npx supabase status -o env)\" && SUPABASE_URL=$API_URL ANON_KEY=$ANON_KEY SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/rls-proof.mjs",
     "db:link": "npx supabase link"
   },

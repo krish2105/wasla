@@ -12,8 +12,16 @@ release builds.
 - Free-tier ceilings that shape design decisions:
   Supabase: 500MB Postgres, 1GB storage, 5GB egress, 200 realtime connections,
   2 projects total (dev + prod, no staging).
-  Gemini: ~1,500 req/day. Groq 8b-instant: 30 RPM / 14,400 RPD.
-  Groq 70b-versatile: ~1,000 RPD — rerank only, cache aggressively.
+  Gemini free: ~10 RPM is the binding limit, not the daily count. Google no
+  longer publishes free-tier numbers; check the AI Studio dashboard.
+  Groq: 30 RPM / 14,400 RPD, but **TPD 100K–500K is the real ceiling** for
+  resume-sized payloads. Models are `openai/gpt-oss-20b` and
+  `openai/gpt-oss-120b` — `llama-3.1-8b-instant` and `llama-3.3-70b-versatile`
+  were shut down on 2026-08-16, free tier included.
+  Cloudflare KV free: **1,000 writes/day**, 100k reads. Every cache miss that
+  stores a result costs one write — this is the sharpest limit in the stack,
+  and why caching is opt-in per task and quota counters live in Postgres.
+  Workers AI free: 10,000 neurons/day ≈ 1.65M tokens of embedding.
 - No scraping of LinkedIn, Bayt, GulfTalent, or any job board. Seed data is
   synthetic and labelled as such in the UI.
 
@@ -22,6 +30,7 @@ Versions below are what `npx expo install` actually resolved on 2026-08-12.
 Never hand-write a version into package.json — run `npx expo install <pkg>` and
 let the SDK resolve it.
 
+Node 22 (pinned in .nvmrc — wrangler, miniflare and unpdf all require >= 22)
 Expo SDK 57.0.12 · React Native 0.86.2 · React 19.2.3 · TypeScript 6.0 strict
 Expo Router 57.0.12 (versioned with the SDK now — there is no "v7")
 NativeWind 4.2.6 + Tailwind 3.4 (NativeWind 4 does not support Tailwind 4)
@@ -33,9 +42,16 @@ Planned, not yet installed: Zustand, TanStack Query v5.
 
 ## Architecture invariants — never violate
 1. The app NEVER calls an LLM provider directly. All inference goes through the
-   Cloudflare Worker at /ai, which fails over Gemini → Groq → Cerebras →
-   OpenRouter on 429, caches by prompt hash in KV, and honours an X-User-Key
-   header for BYOK.
+   Cloudflare Worker at /ai. The failover chain is ordered config
+   (`PROVIDER_ORDER`), not hardcoded branches: **Gemini → Groq today**, with
+   Cerebras and OpenRouter adapters not yet written. Adding one is a file in
+   `worker/src/providers/` plus a config entry — never a change to `chain.ts`.
+   Failover triggers on 429, 402, 5xx and timeouts; a **400 stops the chain**
+   because a malformed request does not become valid at the next provider, and
+   a spent *daily* quota trips a breaker so the provider is skipped until UTC
+   midnight. Responses carry `X-Wasla-Provider`, `X-Wasla-Cache` and
+   `X-Wasla-Attempts`. Cache values are AES-256-GCM encrypted; an `X-User-Key`
+   header (BYOK) bypasses both cache and quota.
 2. Every table has a Row Level Security policy. 0001_init.sql and 0002_rls.sql
    are a matched Week 1 pair applied together; every table added after that
    carries its policy in its own migration. No table ships without one.
@@ -89,9 +105,13 @@ npm run typecheck    # tsc --noEmit
 npm run lint         # expo lint
 npm run check:theme  # fails if a colour literal escaped lib/theme.ts
 npm run build:web    # expo export --platform web
-npm run verify       # check:theme + typecheck + lint + build:web
+npm run verify       # check:theme + typecheck + lint + worker gates + build:web
 npm run db:push      # supabase db push
 npm run db:reset     # supabase db reset (DEV PROJECT ONLY)
+npm run worker:dev       # wrangler dev, the AI gateway on :8787
+npm run worker:test      # vitest-pool-workers
+npm run worker:typecheck # the Worker is a separate tsconfig
+npm run ai:proof         # live gateway checks; needs worker:dev + supabase up
 
 ## Current state
 See PROGRESS.md — I update it at the end of every session. Read it first.
