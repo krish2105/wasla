@@ -1,0 +1,26 @@
+name: keepalive
+
+# Supabase pauses a free project after 7 days with no activity, which would
+# kill the demo the day a recruiter opens it. This is the cheapest possible
+# heartbeat. Note GitHub disables scheduled workflows on a repo with no commits
+# for 60 days — push something, or re-enable it in the Actions tab.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/jobs?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY")
+          echo "PostgREST returned $status"
+          test "$status" = "200"
