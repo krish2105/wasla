@@ -21,6 +21,14 @@ jobs:
 
       - run: npm ci
 
+      - name: Install Worker dependencies
+        # worker/ is a separate npm project (its own package-lock.json) so the
+        # root `npm ci` above does not touch it. Without this, worker:typecheck
+        # fails on a fresh checkout with "Cannot find type definition file for
+        # '@cloudflare/workers-types'" — proven by cloning fresh and running
+        # `npm ci && npm run verify` with nothing else installed.
+        run: npm run worker:install
+
       - name: Verify and export web build
         # check:theme + typecheck + lint + export, then the dist/ that ships.
         # EXPO_PUBLIC_* values are inlined at build time, so they must be
