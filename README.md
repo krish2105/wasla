@@ -85,12 +85,15 @@ for a working deploy.
       `.github/workflows/web-deploy.yml`).
 - [ ] Create an API token with Pages edit permission; note your Account ID.
 
-### 4. GitHub
+### 4. GitHub — https://github.com/krish2105/wasla
 
-- [ ] Create the public repo and push.
-- [ ] Add repository secrets: `EXPO_PUBLIC_SUPABASE_URL`,
-      `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `CLOUDFLARE_API_TOKEN`,
-      `CLOUDFLARE_ACCOUNT_ID`.
+- [x] Public repo created and pushed.
+- [ ] Add repository secrets under Settings → Secrets and variables → Actions:
+      `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`,
+      `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. **`web-deploy` fails
+      until all four exist** — deliberately, since the build succeeds with
+      empty Supabase env and would otherwise publish a site that throws on
+      first sign-in.
 - [ ] After the first scheduled run, confirm `keepalive` is green. GitHub
       disables cron workflows on repos with no commits for 60 days.
 

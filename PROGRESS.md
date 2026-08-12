@@ -12,10 +12,13 @@ Shipped: Expo 57 scaffold (Router, TS strict, iOS/Android/Web), 12-token dual
          workflows. `npm run verify` green, `npm run db:proof` 13/13.
          Whole sign-in flow driven end to end in a browser against local
          Supabase, both themes.
-Broken:  Nothing known. Untested: nothing applied to wasla-dev or deployed,
-         and it has not run on a real device or in a native build — only web.
-Next:    Apply to wasla-dev, deploy to Pages, run it on a phone in both themes,
-         then Session 2 — AI gateway Worker (Opus 5).
+         Pushed to github.com/krish2105/wasla; verify gate green in CI on a
+         clean checkout.
+Broken:  web-deploy fails at the secrets guard, by design — none of the four
+         repository secrets exist yet. Nothing applied to wasla-dev, nothing
+         deployed, never run on a real device or in a native build.
+Next:    Add the four secrets, apply to wasla-dev, deploy to Pages, run it on a
+         phone in both themes, then Session 2 — AI gateway Worker (Opus 5).
 
 ### Version corrections found this session
 
