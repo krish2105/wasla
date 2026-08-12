@@ -25,9 +25,25 @@ npm run lint         # expo lint
 npm run check:theme  # fails if a colour literal escaped lib/theme.ts
 npm run build:web    # expo export --platform web
 npm run verify       # all of the above, in order
-npm run db:push      # supabase db push
+npm run db:push      # supabase db push (link a project first)
 npm run db:proof     # two-account RLS isolation proof (needs supabase start)
 ```
+
+## Wiring up the hosted projects
+
+```bash
+bash scripts/setup-remote.sh
+```
+
+Prompts for the four GitHub Actions secrets and, optionally, links `wasla-dev`
+and pushes the migrations. Values are read into that shell and piped straight to
+`gh` — never echoed, never written to a file, never passed as a command argument
+(argv is readable by `ps`), so nothing lands in your shell history. Re-runnable;
+press enter to skip any item.
+
+Two steps it deliberately leaves to you: pasting
+`supabase/templates/magic_link.html` into the dashboard, and creating the
+Cloudflare Pages project named `wasla`.
 
 ## Local database
 

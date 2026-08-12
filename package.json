@@ -41,11 +41,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "check:theme": "node scripts/check-theme.mjs",
-    "db:push": "supabase db push",
-    "db:reset": "supabase db reset",
+    "db:push": "npx supabase db push",
+    "db:reset": "npx supabase db reset",
     "build:web": "expo export --platform web",
     "verify": "npm run check:theme && npm run typecheck && npm run lint && npm run build:web",
-    "db:proof": "eval \"$(npx supabase status -o env)\" && SUPABASE_URL=$API_URL ANON_KEY=$ANON_KEY SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/rls-proof.mjs"
+    "db:proof": "eval \"$(npx supabase status -o env)\" && SUPABASE_URL=$API_URL ANON_KEY=$ANON_KEY SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY node scripts/rls-proof.mjs",
+    "db:link": "npx supabase link"
   },
   "private": true
 }
