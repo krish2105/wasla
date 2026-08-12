@@ -82,7 +82,33 @@ describe('failover policy', () => {
     expect((await runChain(testEnv(), { prompt: 'hi' })).provider).toBe('groq');
   });
 
-  it('STOPS on 400 instead of failing over', async () => {
+  it('treats Gemini 400 API_KEY_INVALID as a bad key, not a bad request', async () => {
+    // Verified against the live API: Gemini answers an invalid key with 400
+    // INVALID_ARGUMENT, not 401. Read literally that would stop the chain, so
+    // one wrong secret would take the gateway down instead of failing over.
+    // The body arrives wrapped in an array, which is why errorOf unwraps it.
+    const calls = mockFetch([
+      new Response(
+        JSON.stringify([
+          {
+            error: {
+              code: 400,
+              message: 'API key not valid. Please pass a valid API key.',
+              status: 'INVALID_ARGUMENT',
+            },
+          },
+        ]),
+        { status: 400 }
+      ),
+      groqOk('groq covered for it'),
+    ]);
+
+    const out = await runChain(testEnv(), { prompt: 'hi' });
+    expect(out.provider).toBe('groq');
+    expect(calls).toHaveLength(2);
+  });
+
+  it('STOPS on a genuinely malformed request', async () => {
     // The request is malformed. Trying it against every provider produces the
     // same error N times and hides the real cause.
     const calls = mockFetch([new Response('bad request', { status: 400 })]);

@@ -59,27 +59,48 @@ function body(req: CompletionRequest, model: string): string {
  * daily quota must circuit-break the provider, whereas a per-minute limit
  * recovers on its own.
  */
+/**
+ * Gemini wraps its error in an array as often as an object, so the envelope is
+ * unwrapped before anything is read out of it.
+ */
+function errorOf(text: string): { code?: string; status?: string; message?: string } {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    const first = Array.isArray(parsed) ? parsed[0] : parsed;
+    return (first as { error?: Record<string, string> })?.error ?? {};
+  } catch {
+    return {};
+  }
+}
+
 function classify(status: number, text: string): ProviderError {
   if (status === 401 || status === 403) {
     return new ProviderError('bad_key', 'gemini', `Gemini rejected the API key (${status}).`);
   }
+
   if (status === 400) {
+    // Verified against the live API: an invalid key comes back as 400
+    // INVALID_ARGUMENT with reason API_KEY_INVALID, NOT as 401. Classifying it
+    // as bad_request would stop the chain, so one wrong secret would take the
+    // whole gateway down instead of failing over to a healthy provider.
+    if (/API[_ ]KEY[_ ]INVALID|API key not valid/i.test(text)) {
+      return new ProviderError('bad_key', 'gemini', 'Gemini rejected the API key (400).');
+    }
     return new ProviderError('bad_request', 'gemini', `Gemini rejected the request: ${text}`);
   }
+
   if (status === 429) {
-    let code = '';
-    try {
-      code = (JSON.parse(text) as { error?: { code?: string } }).error?.code ?? '';
-    } catch {
-      // Fall through to the per-minute reading, which is the safer default:
-      // it retries later rather than disabling the provider for a whole day.
-    }
+    // Both per-minute and per-day exhaustion return 429; only the code differs,
+    // and the difference decides whether the provider is retried or shelved.
+    const { code, status: rpcStatus } = errorOf(text);
+    const daily = code === 'quota_exceeded' || rpcStatus === 'RESOURCE_EXHAUSTED';
     return new ProviderError(
-      code === 'quota_exceeded' ? 'daily_quota' : 'rate_limit',
+      daily ? 'daily_quota' : 'rate_limit',
       'gemini',
       `Gemini rate limit reached: ${text}`
     );
   }
+
   return new ProviderError('unavailable', 'gemini', `Gemini returned ${status}: ${text}`);
 }
 
