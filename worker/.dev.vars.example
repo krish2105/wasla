@@ -1,0 +1,18 @@
+# Copy to .dev.vars and fill in. .dev.vars is gitignored.
+#
+# Only the names listed under `secrets.required` in wrangler.jsonc are loaded.
+# Use .dev.vars OR .env, never both — if .dev.vars exists, .env is ignored.
+
+# Google AI Studio. Free, no card. https://aistudio.google.com/apikey
+GEMINI_API_KEY=
+
+# Groq. Free, no card. https://console.groq.com/keys
+GROQ_API_KEY=
+
+# 32 random bytes, base64. Generate with:
+#   node -e "console.log(crypto.randomBytes(32).toString('base64'))"
+# Rotating this invalidates every cache entry, which is safe — they are a cache.
+CACHE_KEY=
+
+# The Supabase project the JWTs come from. Local: http://127.0.0.1:54321
+SUPABASE_URL=

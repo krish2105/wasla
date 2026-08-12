@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "wasla-ai-gateway",
+  "main": "src/index.ts",
+
+  // At or after 2026-08-04, so nodejs_compat is on by default. Do not also add
+  // the flag — setting it manually on a date that already implies it is an error.
+  "compatibility_date": "2026-08-12",
+
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      // Local `wrangler dev` ignores this id and uses on-disk storage. Replace
+      // with the real id from `wrangler kv namespace create CACHE` before the
+      // first deploy.
+      "id": "local-dev-placeholder"
+    }
+  ],
+
+  "ai": { "binding": "AI" },
+
+  "vars": {
+    "GEMINI_MODEL": "gemini-3.6-flash",
+    // llama-3.1-8b-instant shut down 2026-08-16, free tier included.
+    "GROQ_MODEL": "openai/gpt-oss-20b",
+    "PROVIDER_ORDER": "gemini,groq",
+    "DAILY_QUOTA": "100"
+  },
+
+  // Only these keys are loaded from .dev.vars, and a missing one fails the
+  // deploy rather than the first request.
+  "secrets": {
+    "required": ["GEMINI_API_KEY", "GROQ_API_KEY", "CACHE_KEY", "SUPABASE_URL"]
+  }
+}

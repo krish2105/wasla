@@ -13,7 +13,10 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          # One source of truth. wrangler, miniflare and unpdf all require
+          # Node >= 22, so this cannot drift back down without breaking the
+          # Worker build.
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
