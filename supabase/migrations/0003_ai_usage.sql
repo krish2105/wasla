@@ -79,6 +79,9 @@ begin
      where u.user_id = v_uid and u.day = v_day;
 
     return query select false, coalesce(v_count, 0), v_resets;
+    -- `return query` appends to the result set, it does not exit. Without this
+    -- the function falls through and appends a contradictory allowed=true row.
+    return;
   end if;
 
   return query select true, v_count, v_resets;
